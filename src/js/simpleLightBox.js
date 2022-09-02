@@ -8,7 +8,6 @@ export const lightbox = new SimpleLightbox('.gallery .card-link', {
 });
 
 export async function preventDefaultForLinks() {
-  console.log('INSIDe');
   document.querySelectorAll('.card-link').forEach(link =>
     link.addEventListener('click', e => {
       e.preventDefault();

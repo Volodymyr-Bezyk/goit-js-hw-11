@@ -29,8 +29,14 @@ function createOneCard(img) {
 </div></a>`;
 }
 
-function createGallery(images) {
+export function createGallery(images) {
   return images.map(createOneCard).join('');
 }
 
-export default createGallery;
+export function renderGalleryCards(markup, element) {
+  element.insertAdjacentHTML('beforeend', markup);
+}
+
+export function clearHTML(element) {
+  element.innerHTML = '';
+}
