@@ -26,14 +26,18 @@ class Pixabay {
   }
 
   async axiosGetRequest() {
-    const response = await axios.get(
-      `${API_KEY}&q=${this.searchQuery}&${this.params}`
-    );
-    if (response.status !== 200) {
-      throw new Error(error);
+    try {
+      const response = await axios.get(
+        `${API_KEY}&q=${this.searchQuery}&${this.params}`
+      );
+      if (response.status !== 200) {
+        throw new Error(error);
+        console.log(error.message);
+      }
+      return response;
+    } catch (error) {
       console.log(error.message);
     }
-    return response;
   }
 }
 

@@ -1,1 +1,34 @@
 @import '~bootstrap/scss/bootstrap';
+
+.navbar {
+  margin-bottom: 30px;
+}
+
+.gallery {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -10px;
+}
+.gallery > .card-link {
+  text-decoration: none;
+  color: inherit;
+  margin: 10px;
+  flex-basis: calc((100% - 8 * 10px) / 4);
+}
+.info {
+  display: flex;
+}
+.card-img-top {
+  display: block;
+  max-width: 100%;
+  height: 200px;
+}
+.info-item {
+  text-align: center;
+}
+.info-item > b {
+  font-size: 13px;
+  text-align: center;
+}
+.card-link {
+}
