@@ -1,5 +1,7 @@
 import { Card, Spinners } from 'bootstrap';
 import Notiflix from 'notiflix';
+import { bottom } from '@popperjs/core';
+
 import {
   showNoticeTotalAmountOfImages,
   showNoticeAboutEndOfPictureList,
@@ -7,7 +9,12 @@ import {
 import { lightbox, preventDefaultForLinks } from './simpleLightBox';
 import Pixabay from './axiosRequests';
 import { createGallery, renderGalleryCards, clearHTML } from './galleryRender';
-import { bottom } from '@popperjs/core';
+import {
+  addSpinnerForLoadMoreButton,
+  removeSpinnerForLoadMoreButton,
+  smoothScroll,
+  toggleClassHiddenOnBtn,
+} from './load-more-btn-functions';
 
 const searchFormRef = document.querySelector('#search-form');
 const galleryRef = document.querySelector('.gallery');
@@ -20,15 +27,16 @@ loadMoreBtnRef.addEventListener('click', onLoadMoreBtnClick);
 
 async function onFormSubmit(e) {
   e.preventDefault();
+
   if (!loadMoreBtnRef.classList.contains('hidden')) {
-    loadMoreBtnRef.classList.toggle('hidden');
+    toggleClassHiddenOnBtn(loadMoreBtnRef);
   }
 
   pixabay.query = e.currentTarget.elements.searchQuery.value;
   pixabay.currentPage = 1;
 
   await responseHandler(e);
-  await loadMoreBtnRef.classList.toggle('hidden');
+  await toggleClassHiddenOnBtn(loadMoreBtnRef);
 }
 
 async function responseHandler(e) {
@@ -37,17 +45,16 @@ async function responseHandler(e) {
 
     //   Actions on Form submit button click
     if (e.type === 'submit') {
-      console.log(response.data);
       if (response.data.hits.length === 0) {
         Notiflix.Notify.failure(
           'Sorry, there are no images matching your search query. Please try again.'
         );
-        loadMoreBtnRef.classList.toggle('hidden');
+        toggleClassHiddenOnBtn(loadMoreBtnRef);
       } else {
-        await showNoticeTotalAmountOfImages(response);
+        showNoticeTotalAmountOfImages(response);
       }
-      await e.target.reset();
-      await clearHTML(galleryRef);
+      e.target.reset();
+      clearHTML(galleryRef);
     }
 
     //   Actions on Load more button click
@@ -57,7 +64,7 @@ async function responseHandler(e) {
         response.data.totalHits + pixabay.perPage
       ) {
         showNoticeAboutEndOfPictureList();
-        loadMoreBtnRef.classList.toggle('hidden');
+        toggleClassHiddenOnBtn(loadMoreBtnRef);
         return;
       }
     }
@@ -68,47 +75,23 @@ async function responseHandler(e) {
     await renderGalleryCards(markup, galleryRef);
     await preventDefaultForLinks();
     await lightbox.refresh();
-    await smoothScroll();
+    if (response.data.totalHits > 0) {
+      await smoothScroll();
+    }
   } catch (error) {
     console.log(error);
   }
 }
 
 function getInfoFromResponse(response) {
-  try {
-    return response.data.hits;
-  } catch {
-    loadMoreBtnRef.classList.add('hidden');
-    console.log('Inside getInfoFromResponse');
-  }
+  return response.data.hits;
 }
 
 async function onLoadMoreBtnClick(e) {
   addSpinnerForLoadMoreButton(loadMoreBtnRef);
-  await pixabay.pagination();
+  pixabay.pagination();
   await responseHandler(e);
   await removeSpinnerForLoadMoreButton(loadMoreBtnRef);
-}
-
-function addSpinnerForLoadMoreButton(btnSelector) {
-  btnSelector.querySelector('.spinner').classList.add('spinner-grow');
-  btnSelector.querySelector('.load-more-text').textContent = 'Loading...';
-}
-
-function removeSpinnerForLoadMoreButton(btnSelector) {
-  btnSelector.querySelector('.spinner').classList.remove('spinner-grow');
-  btnSelector.querySelector('.load-more-text').textContent = 'Load more';
-}
-
-function smoothScroll() {
-  const { height: cardHeight } = document
-    .querySelector('.gallery')
-    .firstElementChild.getBoundingClientRect();
-
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: 'smooth',
-  });
 }
 
 // try and catch

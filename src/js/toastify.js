@@ -3,7 +3,7 @@ import Toastify from 'toastify-js';
 export function showNoticeTotalAmountOfImages(data) {
   Toastify({
     text: `Hooray! We found ${data.data.totalHits} images`,
-    duration: 5000,
+    duration: 3000,
     destination: 'https://github.com/apvarun/toastify-js',
     newWindow: false,
     close: false,
