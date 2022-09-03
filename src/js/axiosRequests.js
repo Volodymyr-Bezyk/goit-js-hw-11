@@ -12,11 +12,11 @@ class Pixabay {
   constructor() {
     this.searchQuery = '';
     this.page = 1;
+    this.perPage = 40;
     this.params = new URLSearchParams({
       image_type: 'photo',
       orientation: 'horizontal',
       safesearch: true,
-      per_page: 4,
     });
   }
   get currentPage() {
@@ -35,21 +35,19 @@ class Pixabay {
   async axiosGetRequest() {
     try {
       const response = await axios.get(
-        `${API_KEY}&q=${this.searchQuery}&${this.params}&page=${this.page}`
+        `${API_KEY}&q=${this.searchQuery}&${this.params}&page=${this.page}&per_page=${this.perPage}`
       );
       if (response.status !== 200) {
         throw new Error(error);
         console.log(error.message);
       }
-      // console.log(response.data.total);
-      // console.log(response.data);
       return response;
     } catch (error) {
       console.log(error.message);
     }
   }
 
-  async pagination() {
+  pagination() {
     this.page += 1;
   }
 }

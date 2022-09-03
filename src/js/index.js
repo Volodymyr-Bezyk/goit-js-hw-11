@@ -1,5 +1,9 @@
 import { Card, Spinners } from 'bootstrap';
-import Toastify from 'toastify-js';
+import Notiflix from 'notiflix';
+import {
+  showNoticeTotalAmountOfImages,
+  showNoticeAboutEndOfPictureList,
+} from './toastify';
 import { lightbox, preventDefaultForLinks } from './simpleLightBox';
 import Pixabay from './axiosRequests';
 import { createGallery, renderGalleryCards, clearHTML } from './galleryRender';
@@ -8,6 +12,7 @@ import { bottom } from '@popperjs/core';
 const searchFormRef = document.querySelector('#search-form');
 const galleryRef = document.querySelector('.gallery');
 const loadMoreBtnRef = document.querySelector('.load-more');
+
 const pixabay = new Pixabay();
 
 searchFormRef.addEventListener('submit', onFormSubmit);
@@ -21,32 +26,67 @@ async function onFormSubmit(e) {
 
   pixabay.query = e.currentTarget.elements.searchQuery.value;
   pixabay.currentPage = 1;
-  e.currentTarget.reset();
-  clearHTML(galleryRef);
-  const response = await pixabay.axiosGetRequest();
-  await showNoticeTotalAmountOfImages(response);
-  await responseHandler(response);
+
+  await responseHandler(e);
   await loadMoreBtnRef.classList.toggle('hidden');
 }
 
-async function responseHandler(response) {
-  const data = await getInfoFromResponse(response);
-  const markup = await createGallery(data);
-  await renderGalleryCards(markup, galleryRef);
-  await preventDefaultForLinks();
-  await lightbox.refresh();
-  await smoothScroll();
+async function responseHandler(e) {
+  try {
+    const response = await pixabay.axiosGetRequest();
+
+    //   Actions on Form submit button click
+    if (e.type === 'submit') {
+      console.log(response.data);
+      if (response.data.hits.length === 0) {
+        Notiflix.Notify.failure(
+          'Sorry, there are no images matching your search query. Please try again.'
+        );
+        loadMoreBtnRef.classList.toggle('hidden');
+      } else {
+        await showNoticeTotalAmountOfImages(response);
+      }
+      await e.target.reset();
+      await clearHTML(galleryRef);
+    }
+
+    //   Actions on Load more button click
+    if (e.target.closest('button')) {
+      if (
+        pixabay.perPage * pixabay.currentPage >=
+        response.data.totalHits + pixabay.perPage
+      ) {
+        showNoticeAboutEndOfPictureList();
+        loadMoreBtnRef.classList.toggle('hidden');
+        return;
+      }
+    }
+
+    //   General actions
+    const data = await getInfoFromResponse(response);
+    const markup = await createGallery(data);
+    await renderGalleryCards(markup, galleryRef);
+    await preventDefaultForLinks();
+    await lightbox.refresh();
+    await smoothScroll();
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 function getInfoFromResponse(response) {
-  return response.data.hits;
+  try {
+    return response.data.hits;
+  } catch {
+    loadMoreBtnRef.classList.add('hidden');
+    console.log('Inside getInfoFromResponse');
+  }
 }
 
 async function onLoadMoreBtnClick(e) {
   addSpinnerForLoadMoreButton(loadMoreBtnRef);
   await pixabay.pagination();
-  const response = await pixabay.axiosGetRequest();
-  await responseHandler(response);
+  await responseHandler(e);
   await removeSpinnerForLoadMoreButton(loadMoreBtnRef);
 }
 
@@ -55,12 +95,12 @@ function addSpinnerForLoadMoreButton(btnSelector) {
   btnSelector.querySelector('.load-more-text').textContent = 'Loading...';
 }
 
-async function removeSpinnerForLoadMoreButton(btnSelector) {
+function removeSpinnerForLoadMoreButton(btnSelector) {
   btnSelector.querySelector('.spinner').classList.remove('spinner-grow');
   btnSelector.querySelector('.load-more-text').textContent = 'Load more';
 }
 
-async function smoothScroll() {
+function smoothScroll() {
   const { height: cardHeight } = document
     .querySelector('.gallery')
     .firstElementChild.getBoundingClientRect();
@@ -71,20 +111,5 @@ async function smoothScroll() {
   });
 }
 
-function showNoticeTotalAmountOfImages(data) {
-  console.log(data.data);
-  Toastify({
-    text: `Hooray! We found ${data.data.total} images`,
-    duration: 5000,
-    destination: 'https://github.com/apvarun/toastify-js',
-    newWindow: false,
-    close: false,
-    gravity: 'top', // `top` or `bottom`
-    position: 'right', // `left`, `center` or `right`
-    stopOnFocus: true, // Prevents dismissing of toast on hover
-    style: {
-      background: 'linear-gradient(to right, #00b09b, #96c93d)',
-    },
-    onClick: function () {}, // Callback after click
-  }).showToast();
-}
+// try and catch
+// async where is needed?

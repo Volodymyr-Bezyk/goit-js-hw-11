@@ -22,6 +22,7 @@
     "axios": "^0.27.2",
     "bootstrap": "^5.2.0",
     "modern-normalize": "^1.1.0",
+    "notiflix": "^3.2.5",
     "simplelightbox": "^2.10.3",
     "toastify-js": "^1.12.0"
   },
