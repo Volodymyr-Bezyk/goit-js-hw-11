@@ -12,7 +12,7 @@ class Pixabay {
   constructor() {
     this.searchQuery = '';
     this.page = 1;
-    this.perPage = 30;
+    this.perPage = 3;
     this.currentMode = '';
     this.params = new URLSearchParams({
       image_type: 'photo',
@@ -59,4 +59,8 @@ class Pixabay {
   }
 }
 
-export default Pixabay;
+const pixabay = new Pixabay();
+
+export default pixabay;
+
+// export default Pixabay;

@@ -5,9 +5,10 @@ import { bottom } from '@popperjs/core';
 import {
   showNoticeTotalAmountOfImages,
   showNoticeAboutEndOfPictureList,
+  showNoticeSelectMode,
 } from './toastify';
 import { lightbox, preventDefaultForLinks } from './simpleLightBox';
-import Pixabay from './axiosRequests';
+import pixabay from './axiosRequests';
 import {
   createGallery,
   renderGalleryCards,
@@ -27,29 +28,32 @@ const galleryRef = document.querySelector('.gallery');
 const loadMoreBtnRef = document.querySelector('.load-more');
 const viewMode = document.querySelector('.btn-group');
 
-const pixabay = new Pixabay();
-
 searchFormRef.addEventListener('submit', onFormSubmit);
 loadMoreBtnRef.addEventListener('click', onLoadMoreBtnClick);
 viewMode.addEventListener('click', onSelectModeClick);
 
 async function onFormSubmit(e) {
   e.preventDefault();
+  pixabay.query = e.currentTarget.elements.searchQuery.value;
+
+  if (!pixabay.mode || !pixabay.query) {
+    showNoticeSelectMode();
+    return;
+  }
 
   if (!loadMoreBtnRef.classList.contains('hidden')) {
     toggleClassHiddenOnBtn(loadMoreBtnRef);
   }
 
-  pixabay.query = e.currentTarget.elements.searchQuery.value;
   pixabay.currentPage = 1;
   await responseHandler(e);
-  console.log('1');
+
   switch (pixabay.mode) {
     case 'load':
       toggleClassHiddenOnBtn(loadMoreBtnRef);
       break;
     case 'scroll':
-      await searchLastLinkForObserver();
+      searchLastLinkForObserver();
       break;
   }
 }
@@ -124,9 +128,9 @@ async function onLoadMoreBtnClick(e) {
 // ================================================================
 // ================================================================
 
+// Intersection observer code
 function searchLastLinkForObserver() {
   const lastLink = document.querySelector('.card-link:last-child');
-  console.log(lastLink);
 
   if (lastLink) {
     observer.observe(lastLink);
@@ -142,7 +146,6 @@ async function loadImages() {
       pixabay.perPage * pixabay.currentPage >=
       response.data.totalHits + pixabay.perPage
     ) {
-      console.log('inside if');
       removeCardSpinner(galleryRef);
       showNoticeAboutEndOfPictureList();
       return;
@@ -159,8 +162,6 @@ async function loadImages() {
 
 const observer = new IntersectionObserver(
   ([entry], observer) => {
-    console.log(entry);
-
     if (entry.isIntersecting) {
       observer.unobserve(entry.target);
       addCardSpinner(galleryRef);
@@ -180,4 +181,6 @@ function onSelectModeClick(e) {
     console.log(pixabay.mode);
   }
 }
-// Tyt otkat
+
+// ================================================================
+// ================================================================
