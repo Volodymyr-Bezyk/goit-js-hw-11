@@ -12,12 +12,19 @@ class Pixabay {
   constructor() {
     this.searchQuery = '';
     this.page = 1;
-    this.perPage = 40;
+    this.perPage = 6;
+    this.currentMode = '';
     this.params = new URLSearchParams({
       image_type: 'photo',
       orientation: 'horizontal',
       safesearch: true,
     });
+  }
+  get mode() {
+    return this.currentMode;
+  }
+  set mode(newMode) {
+    this.currentMode = newMode;
   }
   get currentPage() {
     return this.page;
