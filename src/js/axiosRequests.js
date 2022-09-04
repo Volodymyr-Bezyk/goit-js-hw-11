@@ -12,7 +12,7 @@ class Pixabay {
   constructor() {
     this.searchQuery = '';
     this.page = 1;
-    this.perPage = 6;
+    this.perPage = 30;
     this.currentMode = '';
     this.params = new URLSearchParams({
       image_type: 'photo',

@@ -40,3 +40,18 @@ export function renderGalleryCards(markup, element) {
 export function clearHTML(element) {
   element.innerHTML = '';
 }
+
+export const spinnerTemplate = `<a class="card-link spinner-template photo-card card">
+    <div
+      class="spinner-border"
+      style="width: 3rem; height: 3rem"
+      role="status"
+    ></div>
+  </a>`;
+
+export function addCardSpinner(elementRef) {
+  elementRef.insertAdjacentHTML('beforeend', spinnerTemplate);
+}
+export function removeCardSpinner(elementRef) {
+  elementRef.querySelector('.spinner-template').remove();
+}

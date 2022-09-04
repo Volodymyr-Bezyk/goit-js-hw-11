@@ -8,7 +8,13 @@ import {
 } from './toastify';
 import { lightbox, preventDefaultForLinks } from './simpleLightBox';
 import Pixabay from './axiosRequests';
-import { createGallery, renderGalleryCards, clearHTML } from './galleryRender';
+import {
+  createGallery,
+  renderGalleryCards,
+  clearHTML,
+  addCardSpinner,
+  removeCardSpinner,
+} from './galleryRender';
 import {
   addSpinnerForLoadMoreButton,
   removeSpinnerForLoadMoreButton,
@@ -36,15 +42,14 @@ async function onFormSubmit(e) {
 
   pixabay.query = e.currentTarget.elements.searchQuery.value;
   pixabay.currentPage = 1;
-
   await responseHandler(e);
-
+  console.log('1');
   switch (pixabay.mode) {
     case 'load':
       toggleClassHiddenOnBtn(loadMoreBtnRef);
       break;
     case 'scroll':
-      loadImages();
+      await searchLastLinkForObserver();
       break;
   }
 }
@@ -96,18 +101,18 @@ async function responseHandler(e) {
       onLoadMoreBtnClickHandler(response);
     }
     //   General actions
-    getAndRenderDataFromResponse(response);
+    await getAndRenderDataFromResponse(response);
   } catch (error) {
     console.log(error);
   }
 }
 
-function getResponse() {
-  return pixabay.axiosGetRequest();
+async function getResponse() {
+  return await pixabay.axiosGetRequest();
 }
 
-function getInfoFromResponse(response) {
-  return response.data.hits;
+async function getInfoFromResponse(response) {
+  return await response.data.hits;
 }
 
 async function onLoadMoreBtnClick(e) {
@@ -119,17 +124,34 @@ async function onLoadMoreBtnClick(e) {
 // ================================================================
 // ================================================================
 
+function searchLastLinkForObserver() {
+  const lastLink = document.querySelector('.card-link:last-child');
+  console.log(lastLink);
+
+  if (lastLink) {
+    observer.observe(lastLink);
+  }
+}
+
 async function loadImages() {
   try {
     pixabay.pagination();
     const response = await getResponse();
-    getAndRenderDataFromResponse(response);
 
-    const lastLink = document.querySelector('.card-link:last-child');
-
-    if (lastLink) {
-      observer.observe(lastLink);
+    if (
+      pixabay.perPage * pixabay.currentPage >=
+      response.data.totalHits + pixabay.perPage
+    ) {
+      console.log('inside if');
+      removeCardSpinner(galleryRef);
+      showNoticeAboutEndOfPictureList();
+      return;
     }
+
+    await getAndRenderDataFromResponse(response);
+    removeCardSpinner(galleryRef);
+
+    searchLastLinkForObserver();
   } catch (error) {
     console.log(error);
   }
@@ -137,14 +159,18 @@ async function loadImages() {
 
 const observer = new IntersectionObserver(
   ([entry], observer) => {
+    console.log(entry);
+
     if (entry.isIntersecting) {
       observer.unobserve(entry.target);
+      addCardSpinner(galleryRef);
+
       loadImages();
     }
-    console.log(entry);
   },
   {
     threshold: 1,
+    // root: null,
   }
 );
 
