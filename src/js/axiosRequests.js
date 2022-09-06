@@ -12,8 +12,8 @@ class Pixabay {
   constructor() {
     this.searchQuery = '';
     this.page = 1;
-    this.perPage = 3;
-    this.currentMode = '';
+    this.perPage = 40;
+    this.currentMode = 'pagination';
     this.params = new URLSearchParams({
       image_type: 'photo',
       orientation: 'horizontal',
@@ -57,10 +57,14 @@ class Pixabay {
   pagination() {
     this.page += 1;
   }
+  increment() {
+    this.currentPage += 1;
+  }
+  decrement() {
+    this.currentPage -= 1;
+  }
 }
 
 const pixabay = new Pixabay();
 
 export default pixabay;
-
-// export default Pixabay;

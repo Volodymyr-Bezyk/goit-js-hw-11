@@ -1,1 +1,0 @@
-import pixabay from './axiosRequests';

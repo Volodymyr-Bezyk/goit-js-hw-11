@@ -48,7 +48,8 @@
   transition: opacity linear 1000ms, visibility linear 1000ms;
 }
 
-.load-more.hidden {
+.load-more.hidden,
+.pagination-block.hidden {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -59,4 +60,13 @@
   //   width: 280px;
   justify-content: center;
   align-items: center;
+}
+
+.pagination-block {
+  display: flex;
+  justify-content: center;
+}
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
 }
