@@ -1,282 +1,191 @@
-import { Card, Spinners } from 'bootstrap';
+import * as bootstrap from 'bootstrap';
 import Notiflix from 'notiflix';
-import { afterRead, bottom } from '@popperjs/core';
 
-import {
-  showNoticeTotalAmountOfImages,
-  showNoticeAboutEndOfPictureList,
-  showNoticeSelectMode,
-} from './toastify';
 import { lightbox, preventDefaultForLinks } from './simpleLightBox';
-import pixabay from './axiosRequests';
-import {
-  createGallery,
-  renderGalleryCards,
-  clearHTML,
-  addCardSpinner,
-  removeCardSpinner,
-} from './galleryRender';
-import {
-  addSpinnerForLoadMoreButton,
-  removeSpinnerForLoadMoreButton,
-  smoothScroll,
-  toggleClassHiddenOnBtn,
-} from './load-more-btn-functions';
-import {
-  createPaginationsPages,
-  renderPagination,
-  removeElement,
-} from './pagination';
 
-const searchFormRef = document.querySelector('#search-form');
-const galleryRef = document.querySelector('.gallery');
-const loadMoreBtnRef = document.querySelector('.load-more');
-const viewMode = document.querySelector('.btn-group');
-const paginationBlockRef = document.querySelector('.pagination-block');
+import refs from './refs';
+import * as API from './pixabayService';
+import * as render from './galleryRender';
+import * as toast from './toastify';
+import * as LMB from './loadMorebtn';
+import * as IO from './intersectionObserverAPI';
+import { enablePaginationMode, hidePagination } from './pagination';
 
-searchFormRef.addEventListener('submit', onFormSubmit);
-loadMoreBtnRef.addEventListener('click', onLoadMoreBtnClick);
-viewMode.addEventListener('click', onSelectModeClick);
-paginationBlockRef.addEventListener('click', onPaginationBlockClick);
+refs.searchForm.addEventListener('submit', onFormSubmit);
+refs.viewMode.addEventListener('click', API.setPixabayMode);
+refs.loadMoreBtn.addEventListener('click', onLoadMoreBtnClick);
+refs.paginationBlock.addEventListener('click', onPaginationBlockClick);
 
+// Form submit actions
 async function onFormSubmit(e) {
-  e.preventDefault();
-  pixabay.query = e.currentTarget.elements.searchQuery.value;
-
-  if (!pixabay.mode || !pixabay.query) {
-    showNoticeSelectMode();
-    return;
-  }
-
-  if (!loadMoreBtnRef.classList.contains('hidden')) {
-    toggleClassHiddenOnBtn(loadMoreBtnRef);
-  }
-
-  pixabay.currentPage = 1;
-  await responseHandler(e);
-
-  switch (pixabay.mode) {
-    case 'load':
-      toggleClassHiddenOnBtn(loadMoreBtnRef);
-      if (!paginationRef.classList.contains('hidden')) {
-      }
-      break;
-    case 'scroll':
-      searchLastLinkForObserver();
-      break;
-    case 'pagination':
-      break;
-  }
-}
-
-function onSearchBtnClickHandler(response, e) {
-  if (response.data.hits.length === 0) {
-    Notiflix.Notify.failure(
-      'Sorry, there are no images matching your search query. Please try again.'
-    );
-    toggleClassHiddenOnBtn(loadMoreBtnRef);
-    if (pixabay.mode === 'scroll' || pixabay.mode === 'pagination') {
-      toggleClassHiddenOnBtn(loadMoreBtnRef);
-    }
-  } else {
-    showNoticeTotalAmountOfImages(response);
-  }
-  e.target.reset();
-  clearHTML(galleryRef);
-}
-
-function onLoadMoreBtnClickHandler(response) {
-  if (
-    pixabay.perPage * pixabay.currentPage >=
-    response.data.totalHits + pixabay.perPage
-  ) {
-    showNoticeAboutEndOfPictureList();
-    toggleClassHiddenOnBtn(loadMoreBtnRef);
-    return;
-  }
-}
-
-async function getAndRenderDataFromResponse(response) {
-  const data = await getInfoFromResponse(response);
-  const markup = await createGallery(data);
-  renderGalleryCards(markup, galleryRef);
-  await preventDefaultForLinks();
-  await lightbox.refresh();
-  if (response.data.totalHits > 0 && pixabay.mode === 'load') {
-    smoothScroll();
-  }
-}
-
-async function responseHandler(e) {
   try {
-    const response = await getResponse();
-    //   Actions on Form submit button click
-    if (e.type === 'submit') {
-      onSearchBtnClickHandler(response, e);
-    }
-    //   Actions on Load more button click
-    if (e.target.closest('button')) {
-      onLoadMoreBtnClickHandler(response);
+    e.preventDefault();
+
+    const searchQuery = e.currentTarget.elements.searchQuery.value;
+    const mode = API.getPixabayMode();
+
+    if (!searchQuery) {
+      Notiflix.Notify.warning('You must type something in search field');
+      return;
     }
 
-    if (pixabay.mode === 'pagination') {
-      onPaginationMode(response);
+    if (!mode) {
+      Notiflix.Notify.warning('You must choose search mode');
+      return;
     }
-    //   General actions
-    await getAndRenderDataFromResponse(response);
+
+    API.setPixabaySearchQuery(searchQuery);
+    API.setPixabayPage(1);
+
+    const isLoadMoreBtnVisible = LMB.checkHiddenClass(refs.loadMoreBtn);
+    if (!isLoadMoreBtnVisible) {
+      LMB.toggleClassHiddenOnBtn(refs.loadMoreBtn);
+    }
+
+    // Request to server
+    const response = await API.getPixabayResponse();
+    API.setTotalQuantityOfPages(response);
+    const totalPages = API.getTotalQuantityOfPages();
+    render.clearHTML(refs.gallery);
+    await API.responseHandler(response, refs.gallery);
+    // end of reques code
+
+    switch (API.getPixabayMode()) {
+      case 'load':
+        LMB.toggleClassHiddenOnBtn(refs.loadMoreBtn);
+        hidePagination(refs.paginationBlock);
+        break;
+      case 'scroll':
+        IO.searchLastLinkForObserver(response);
+        hidePagination(refs.paginationBlock);
+        break;
+      case 'pagination':
+        if (totalPages) {
+          enablePaginationMode(response, refs.paginationBlock);
+        }
+        break;
+    }
+
+    // Visibility of loadMoreBtn
+    if (!totalPages) {
+      Notiflix.Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
+      LMB.toggleClassHiddenOnBtn(refs.loadMoreBtn);
+      hidePagination(refs.paginationBlock);
+
+      if (
+        API.getPixabayMode() === 'scroll' ||
+        API.getPixabayMode() === 'pagination'
+      ) {
+        LMB.toggleClassHiddenOnBtn(refs.loadMoreBtn);
+      }
+    } else {
+      toast.showNoticeTotalAmountOfImages(response);
+    }
+
+    e.target.reset();
   } catch (error) {
     console.log(error);
   }
 }
 
-async function getResponse() {
-  return await pixabay.axiosGetRequest();
-}
-
-async function getInfoFromResponse(response) {
-  return await response.data.hits;
-}
-
+// Load more button actions
 async function onLoadMoreBtnClick(e) {
-  addSpinnerForLoadMoreButton(loadMoreBtnRef);
-  pixabay.pagination();
-  await responseHandler(e);
-  removeSpinnerForLoadMoreButton(loadMoreBtnRef);
-}
-
-function onSelectModeClick(e) {
-  if (e.target.nodeName === 'INPUT') {
-    pixabay.mode = e.target.value;
-  }
-}
-
-// ================================================================
-// ================================================================
-
-// Intersection observer code
-function searchLastLinkForObserver() {
-  const lastLink = document.querySelector('.card-link:last-child');
-
-  if (lastLink) {
-    observer.observe(lastLink);
-  }
-}
-
-async function loadImages() {
   try {
-    pixabay.pagination();
-    const response = await getResponse();
+    LMB.addSpinnerForLoadMoreButton(refs.loadMoreBtn);
+    API.nextPagePixabayRequest();
+    const totalPages = API.getTotalQuantityOfPages();
+    const countOnPage = API.amountOnPage();
+    const currentPage = API.getPixabayCurrentPage();
 
-    if (
-      pixabay.perPage * pixabay.currentPage >=
-        response.data.totalHits + pixabay.perPage ||
-      response.status === 400
-    ) {
-      removeCardSpinner(galleryRef);
-      showNoticeAboutEndOfPictureList();
+    if (countOnPage * currentPage >= totalPages + countOnPage) {
+      toast.showNoticeAboutEndOfPictureList();
+      LMB.toggleClassHiddenOnBtn(refs.loadMoreBtn);
+      LMB.removeSpinnerForLoadMoreButton(refs.loadMoreBtn);
       return;
     }
 
-    await getAndRenderDataFromResponse(response);
-    removeCardSpinner(galleryRef);
-    function onSelectModeClick(e) {
-      if (e.target.nodeName === 'INPUT') {
-        pixabay.mode = e.target.value;
-      }
-    }
-
-    searchLastLinkForObserver();
+    const response = await API.getPixabayResponse();
+    await API.responseHandler(response, refs.gallery);
+    LMB.smoothScroll();
+    LMB.removeSpinnerForLoadMoreButton(refs.loadMoreBtn);
   } catch (error) {
     console.log(error);
   }
 }
 
-const observer = new IntersectionObserver(
-  ([entry], observer) => {
-    if (entry.isIntersecting) {
-      observer.unobserve(entry.target);
-      addCardSpinner(galleryRef);
-
-      loadImages();
-    }
-  },
-  {
-    threshold: 1,
-    // root: null,
-  }
-);
-
-// ================================================================
-// ================================================================
-// Pagination code
-
-async function onPaginationMode(response) {
-  const countOfPages = Math.ceil(response.data.totalHits / pixabay.perPage);
-
-  const updatePagination = document
-    .querySelectorAll('.js-add')
-    .forEach(removeElement);
-  const paginationMarkup = createPaginationsPages(countOfPages);
-  renderPagination(paginationMarkup, paginationBlockRef);
-}
-
+// Pagination block actions
 async function onPaginationBlockClick(e) {
-  if (e.target.nodeName === 'NAV') return;
-  const targetElement = e.target.closest('.page-item').dataset.page;
+  try {
+    if (e.target.nodeName === 'NAV') return;
+    const targetElement = e.target.closest('.page-item').dataset.page;
+    const isPreviousPage = targetElement === 'previous';
+    const isNextPage = targetElement === 'next';
 
-  if (targetElement !== 'previous' && targetElement !== 'next') {
-    pixabay.currentPage = Number(targetElement);
-    console.log(pixabay.currentPage);
-    clearHTML(galleryRef);
-    const response = await getResponse();
-    await getAndRenderDataFromResponse(response);
-    if (paginationBlockRef.querySelector('.active')) {
-      paginationBlockRef.querySelector('.active').classList.remove('active');
+    //   Pagination code with page number
+    if (!isPreviousPage && !isNextPage) {
+      API.setPixabayCurrentPage(targetElement);
+
+      const response = await API.getPixabayResponse();
+      render.clearHTML(refs.gallery);
+      await API.responseHandler(response, refs.gallery);
+
+      const activePage = refs.paginationBlock.querySelector('.active');
+      if (activePage) {
+        activePage.classList.remove('active');
+      }
+      e.target.closest('.page-item').classList.add('active');
     }
-    e.target.closest('.page-item').classList.add('active');
-  }
 
-  // Previous page pagination code
-  if (targetElement === 'previous') {
-    if (pixabay.currentPage === 1) {
-      e.preventDefault();
-      return;
+    // Previous page pagination code.
+    if (isPreviousPage) {
+      if (Number(API.getPixabayCurrentPage()) === 1) {
+        e.preventDefault();
+        return;
+      }
+
+      API.decrementPixabay();
+      const response = await API.getPixabayResponse();
+      render.clearHTML(refs.gallery);
+      await API.responseHandler(response, refs.gallery);
+
+      const activePage = refs.paginationBlock.querySelector('.active');
+      if (activePage) {
+        activePage.classList.remove('active');
+      }
+      refs.paginationBlock
+        .querySelector(`[data-page="${API.getPixabayCurrentPage()}"]`)
+        .classList.add('active');
     }
-    pixabay.decrement();
 
-    const response = await getResponse();
-    clearHTML(galleryRef);
-    await getAndRenderDataFromResponse(response);
-    if (paginationBlockRef.querySelector('.active')) {
-      paginationBlockRef.querySelector('.active').classList.remove('active');
-    }
-    paginationBlockRef
-      .querySelector(`[data-page="${pixabay.currentPage}"]`)
-      .classList.add('active');
-  }
-
-  // Next page pagination code
-  if (targetElement === 'next') {
-    if (
-      pixabay.currentPage ===
-      Number(
-        paginationBlockRef.querySelector('.pagination').lastElementChild
+    // Next page pagination code.
+    if (isNextPage) {
+      const lastPage = Number(
+        refs.paginationBlock.querySelector('.pagination').lastElementChild
           .previousElementSibling.dataset.page
-      )
-    ) {
-      e.preventDefault();
-      return;
-    }
-    pixabay.increment();
+      );
 
-    const response = await getResponse();
-    clearHTML(galleryRef);
-    await getAndRenderDataFromResponse(response);
-    if (paginationBlockRef.querySelector('.active')) {
-      paginationBlockRef.querySelector('.active').classList.remove('active');
+      if (Number(API.getPixabayCurrentPage()) === lastPage) {
+        e.preventDefault();
+        toast.showNoticeAboutEndOfPictureList();
+        return;
+      }
+
+      API.incrementPixabay();
+      const response = await API.getPixabayResponse();
+      render.clearHTML(refs.gallery);
+      await API.responseHandler(response, refs.gallery);
+
+      const activePage = refs.paginationBlock.querySelector('.active');
+      if (activePage) {
+        activePage.classList.remove('active');
+      }
+      refs.paginationBlock
+        .querySelector(`[data-page="${API.getPixabayCurrentPage()}"]`)
+        .classList.add('active');
     }
-    paginationBlockRef
-      .querySelector(`[data-page="${pixabay.currentPage}"]`)
-      .classList.add('active');
+  } catch (error) {
+    console.log(error);
   }
 }

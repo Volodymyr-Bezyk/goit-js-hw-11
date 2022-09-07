@@ -22,3 +22,7 @@ export function smoothScroll() {
 export function toggleClassHiddenOnBtn(btnRef) {
   btnRef.classList.toggle('hidden');
 }
+
+export function checkHiddenClass(btnRef) {
+  return btnRef.classList.contains('hidden');
+}

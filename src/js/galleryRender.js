@@ -1,4 +1,4 @@
-function createOneCard(img) {
+function createOneCard(elem) {
   const {
     webformatURL,
     largeImageURL,
@@ -7,7 +7,7 @@ function createOneCard(img) {
     views,
     comments,
     downloads,
-  } = img;
+  } = elem;
 
   return `<a href="${largeImageURL}" class="card-link" >
   <div class="photo-card card"  >

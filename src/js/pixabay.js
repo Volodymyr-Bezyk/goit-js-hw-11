@@ -13,12 +13,25 @@ class Pixabay {
     this.searchQuery = '';
     this.page = 1;
     this.perPage = 40;
-    this.currentMode = 'pagination';
+    this.currentMode = '';
+    this.totalPages = 0;
     this.params = new URLSearchParams({
       image_type: 'photo',
       orientation: 'horizontal',
       safesearch: true,
     });
+  }
+  get pages() {
+    return this.totalPages;
+  }
+  set pages(quantity) {
+    this.totalPages = Number(quantity);
+  }
+  get onPage() {
+    return this.perPage;
+  }
+  set onPage(count) {
+    this.perPage = count;
   }
   get mode() {
     return this.currentMode;
@@ -58,10 +71,10 @@ class Pixabay {
     this.page += 1;
   }
   increment() {
-    this.currentPage += 1;
+    this.currentPage = Number(this.currentPage) + 1;
   }
   decrement() {
-    this.currentPage -= 1;
+    this.currentPage = Number(this.currentPage) - 1;
   }
 }
 

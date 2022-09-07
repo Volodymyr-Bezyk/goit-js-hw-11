@@ -28,19 +28,3 @@ export function showNoticeAboutEndOfPictureList() {
     },
   }).showToast();
 }
-
-export function showNoticeSelectMode(data) {
-  Toastify({
-    text: `Please type something in search field and select  SEARCH MODE ==>>>`,
-    duration: 2000,
-    newWindow: false,
-    close: false,
-    gravity: 'top', // `top` or `bottom`
-    position: 'center', // `left`, `center` or `right`
-    stopOnFocus: true, // Prevents dismissing of toast on hover
-    style: {
-      background: 'linear-gradient(to right, #00b09b, #96c93d)',
-    },
-    onClick: function () {}, // Callback after click
-  }).showToast();
-}
